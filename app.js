@@ -3,8 +3,6 @@
 
 // ==================== CONSTANTES GLOBALES ====================
 
-// Ces constantes sont également définies dans data.js, mais nous les redéfinissons
-// pour garantir leur disponibilité même si data.js n'est pas chargé
 const JOURS_FRANCAIS = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
 
 const SHIFT_LABELS = {
@@ -175,7 +173,7 @@ function loadData() {
     const savedAgents = localStorage.getItem('sga_agents');
     if (savedAgents && JSON.parse(savedAgents).length > 0) {
         agents = JSON.parse(savedAgents);
-    } else if (typeof window.agents !== 'undefined' && window.agents.length > 0) {
+    } else if (typeof window.agents !== 'undefined' && window.agents && window.agents.length > 0) {
         agents = window.agents;
     } else {
         agents = [];
@@ -809,8 +807,7 @@ function showGlobalPlanning(month, year) {
                             const dayName = JOURS_FRANCAIS[date.getDay()];
                             return `<th>${day}<br>${dayName}</th>`;
                         }).join('')}
-                        </tr>
-                    </thead>
+                        </thead>
                     <tbody>
                         ${activeAgents.map(agent => `
                             <tr>
@@ -1357,7 +1354,6 @@ function generateClassement() {
     const group = document.getElementById('classementGroup').value;
     let filtered = group === "ALL" ? agents.filter(a => a.statut === 'actif') : agents.filter(a => a.groupe === group && a.statut === 'actif');
     
-    // Calculer les jours travaillés pour chaque agent
     const today = new Date();
     const startDate = new Date(today.getFullYear(), 0, 1);
     const endDate = new Date(today.getFullYear(), 11, 31);
@@ -1382,7 +1378,7 @@ function generateClassement() {
                          </tr>
                     `).join('')}
                 </tbody>
-            </table>
+             </table>
         </div>
     `;
     
@@ -1424,7 +1420,7 @@ function generateFullReport() {
             <div style="background: #2c3e50; border-radius: 8px; padding: 15px; margin: 20px 0;">
                 <h3 style="margin-top: 0;">👥 Liste des Agents</h3>
                 <table class="classement-table">
-                    <thead><tr><th>Code</th><th>Nom</th><th>Prénom</th><th>Groupe</th><th>Statut</th></thead>
+                    <thead> <tr><th>Code</th><th>Nom</th><th>Prénom</th><th>Groupe</th><th>Statut</th></tr> </thead>
                     <tbody>
                         ${activeAgents.map(a => `
                             <tr><td>${a.code}</td><td>${a.nom}</td><td>${a.prenom}</td><td>${a.groupe}</td><td>${a.statut}</td></tr>
@@ -1509,7 +1505,7 @@ function saveLeave() {
     };
     
     saveData();
-    showSnackbar(`✅ Absence (${SHIFT_LABELS[leaveType]}) enregistrée pour ${agentCode} le ${leaveDate}`);
+    showSnackbar(`✅ ${SHIFT_LABELS[leaveType]} enregistré pour ${agentCode} le ${leaveDate}`);
     closePopup();
 }
 
@@ -1540,7 +1536,7 @@ function showLeavesList() {
         <div class="info-section">
             <h3>Liste des Congés/Absences</h3>
             <table class="classement-table">
-                <thead><tr><th>Agent</th><th>Date</th><th>Type</th><th>Commentaire</th></thead>
+                <thead> <tr><th>Agent</th><th>Date</th><th>Type</th><th>Commentaire</th></tr> </thead>
                 <tbody>
                     ${leavesList.map(l => {
                         const agent = agents.find(a => a.code === l.agentCode);
@@ -1603,7 +1599,7 @@ function showAgentLeaves() {
         <div class="info-section">
             <h3>Congés de ${agent.nom} ${agent.prenom}</h3>
             <table class="classement-table">
-                <thead><tr><th>Date</th><th>Type</th><th>Commentaire</th></thead>
+                <thead> <tr><th>Date</th><th>Type</th><th>Commentaire</th></tr> </thead>
                 <tbody>
                     ${agentLeaves.map(l => `
                         <tr><td>${l.date}</td><td>${SHIFT_LABELS[l.type]}</td><td>${l.comment || '-'}</td></tr>
@@ -1758,7 +1754,7 @@ function showPanicCodesList() {
         <div class="info-section">
             <h3>Liste des Codes Panique</h3>
             <table class="classement-table">
-                <thead><tr><th>Agent</th><th>Code</th><th>Poste</th><th>Créé le</th></thead>
+                <thead> <tr><th>Agent</th><th>Code</th><th>Poste</th><th>Créé le</th></tr> </thead>
                 <tbody>
                     ${panicCodes.map(code => {
                         const agent = agents.find(a => a.code === code.agent_code);
@@ -1885,7 +1881,7 @@ function showRadiosList() {
         <div class="info-section">
             <h3>📻 Liste des Radios</h3>
             <table class="classement-table">
-                <thead><tr><th>ID</th><th>Modèle</th><th>Série</th><th>Statut</th><th>Attribuée à</th></thead>
+                <thead> <tr><th>ID</th><th>Modèle</th><th>Série</th><th>Statut</th><th>Attribuée à</th></tr> </thead>
                 <tbody>
                     ${radios.map(radio => {
                         const agent = radio.attributed_to ? agents.find(a => a.code === radio.attributed_to) : null;
@@ -2021,6 +2017,17 @@ function executeAssignRadio() {
     radios[radioIndex].attribution_date = new Date().toISOString().split('T')[0];
     radios[radioIndex].attribution_motif = motif;
     
+    if (!radioHistory) radioHistory = [];
+    radioHistory.push({
+        id: 'H' + Date.now(),
+        radioId: radioId,
+        agentCode: agentCode,
+        action: 'ATTRIBUTION',
+        date: new Date().toISOString().split('T')[0],
+        details: `Attribuée à ${agentCode} - Motif: ${motif}`,
+        createdBy: 'Admin'
+    });
+    
     saveData();
     showSnackbar(`✅ Radio ${radioId} attribuée à ${agentCode}`);
     closePopup();
@@ -2052,6 +2059,7 @@ function showReturnRadioForm() {
                     <option value="DOMMAGE">Dommage</option>
                 </select>
             </div>
+            <div class="form-group"><label>Commentaire:</label><textarea id="returnComment" class="form-input" rows="2"></textarea></div>
         </div>
     `;
     
@@ -2066,6 +2074,7 @@ function executeReturnRadio() {
     
     const radioId = document.getElementById('returnRadioSelect').value;
     const condition = document.getElementById('returnCondition').value;
+    const comment = document.getElementById('returnComment').value;
     
     const radioIndex = radios.findIndex(r => r.id === radioId);
     if (radioIndex === -1) {
@@ -2073,15 +2082,98 @@ function executeReturnRadio() {
         return;
     }
     
+    const oldAgent = radios[radioIndex].attributed_to;
+    
     radios[radioIndex].statut = 'DISPONIBLE';
     radios[radioIndex].return_date = new Date().toISOString().split('T')[0];
     radios[radioIndex].return_condition = condition;
+    radios[radioIndex].return_comment = comment;
     radios[radioIndex].attributed_to = null;
+    
+    if (!radioHistory) radioHistory = [];
+    radioHistory.push({
+        id: 'H' + Date.now(),
+        radioId: radioId,
+        agentCode: oldAgent,
+        action: 'RETOUR',
+        date: new Date().toISOString().split('T')[0],
+        details: `Retournée par ${oldAgent} - État: ${condition}`,
+        comments: comment,
+        createdBy: 'Admin'
+    });
     
     saveData();
     showSnackbar(`✅ Radio ${radioId} retournée avec succès`);
     closePopup();
     showRadiosList();
+}
+
+function showEditRadioForm(radioId) {
+    const radio = radios.find(r => r.id === radioId);
+    if (!radio) {
+        showSnackbar("⚠️ Radio non trouvée");
+        return;
+    }
+    
+    let html = `
+        <div class="info-section">
+            <h3>✏️ Modifier Radio ${radioId}</h3>
+            <div class="form-group"><label>Modèle:</label><input type="text" id="editRadioModel" value="${radio.modele}" class="form-input"></div>
+            <div class="form-group"><label>Numéro de série:</label><input type="text" id="editRadioSerial" value="${radio.serial || ''}" class="form-input"></div>
+            <div class="form-group"><label>Statut:</label>
+                <select id="editRadioStatus" class="form-input">
+                    <option value="DISPONIBLE" ${radio.statut === 'DISPONIBLE' ? 'selected' : ''}>Disponible</option>
+                    <option value="ATTRIBUEE" ${radio.statut === 'ATTRIBUEE' ? 'selected' : ''}>Attribuée</option>
+                    <option value="HS" ${radio.statut === 'HS' ? 'selected' : ''}>Hors Service</option>
+                </select>
+            </div>
+        </div>
+    `;
+    
+    openPopup(`✏️ Modifier Radio ${radioId}`, html, `
+        <button class="popup-button green" onclick="saveEditRadio('${radioId}')">💾 Enregistrer</button>
+        <button class="popup-button gray" onclick="showRadiosList()">Annuler</button>
+    `);
+}
+
+function saveEditRadio(radioId) {
+    if (!checkPassword()) return;
+    
+    const radioIndex = radios.findIndex(r => r.id === radioId);
+    if (radioIndex === -1) {
+        showSnackbar("⚠️ Radio non trouvée");
+        return;
+    }
+    
+    radios[radioIndex].modele = document.getElementById('editRadioModel').value;
+    radios[radioIndex].serial = document.getElementById('editRadioSerial').value;
+    radios[radioIndex].statut = document.getElementById('editRadioStatus').value;
+    radios[radioIndex].updated_at = new Date().toISOString();
+    
+    saveData();
+    showSnackbar(`✅ Radio ${radioId} mise à jour`);
+    closePopup();
+    showRadiosList();
+}
+
+function deleteRadio(radioId) {
+    if (!checkPassword()) return;
+    
+    const index = radios.findIndex(r => r.id === radioId);
+    if (index !== -1) {
+        radios.splice(index, 1);
+        saveData();
+        showSnackbar(`✅ Radio ${radioId} supprimée`);
+        showRadiosList();
+    }
+}
+
+function filterRadios() {
+    showSnackbar("🔍 Filtre radios - utilisez la recherche dans la liste");
+}
+
+function reportRadioProblem(radioId) {
+    showSnackbar(`⚠️ Problème signalé pour la radio ${radioId} - contactez l'administrateur`);
 }
 
 function showRadiosStatus() {
@@ -2121,7 +2213,33 @@ function showRadiosStatus() {
 }
 
 function showRadiosHistory() {
-    showSnackbar("📋 Historique des radios - fonctionnalité complète à venir");
+    if (!radioHistory || radioHistory.length === 0) {
+        showSnackbar("ℹ️ Aucun historique disponible");
+        return;
+    }
+    
+    let html = `
+        <div class="info-section">
+            <h3>📋 Historique des Radios</h3>
+            <table class="classement-table">
+                <thead> <tr><th>Date</th><th>Radio</th><th>Action</th><th>Agent</th><th>Détails</th> </thead>
+                <tbody>
+                    ${radioHistory.map(h => `
+                        <tr>
+                            <td>${h.date}${h.date}  <td><strong>${h.radioId}</strong></td>
+                            <td>${h.action === 'ATTRIBUTION' ? '📲 Attribution' : '🔄 Retour'}</td>
+                            <td>${h.agentCode || '-'}</td>
+                            <td>${h.details || h.comments || '-'}</td>
+                         </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+    
+    openPopup("📋 Historique des Radios", html, `
+        <button class="popup-button gray" onclick="displayRadiosMenu()">Retour</button>
+    `);
 }
 
 // ==================== HABILLEMENT ====================
@@ -2155,6 +2273,7 @@ function showAddUniformForm() {
             <div class="form-group"><label>Cravate:</label>
                 <select id="uniformTie" class="form-input"><option value="oui">Oui</option><option value="non">Non</option></select>
             </div>
+            <div class="form-group"><label>Date de fourniture:</label><input type="date" id="uniformDate" class="form-input" value="${new Date().toISOString().split('T')[0]}"></div>
         </div>
     `;
     
@@ -2172,6 +2291,7 @@ function saveUniform() {
     const pants = document.getElementById('uniformPants').value;
     const jacket = document.getElementById('uniformJacket').value;
     const tie = document.getElementById('uniformTie').value;
+    const date = document.getElementById('uniformDate').value;
     
     if (!agentCode || !shirt || !pants) {
         showSnackbar("⚠️ Veuillez remplir les champs obligatoires");
@@ -2182,13 +2302,13 @@ function saveUniform() {
     const uniformData = {
         agent_code: agentCode,
         chemise_taille: shirt,
-        chemise_date: new Date().toISOString().split('T')[0],
+        chemise_date: date,
         pantalon_taille: pants,
-        pantalon_date: new Date().toISOString().split('T')[0],
+        pantalon_date: date,
         jacket_taille: jacket || '',
-        jacket_date: jacket ? new Date().toISOString().split('T')[0] : '',
+        jacket_date: jacket ? date : '',
         cravate_oui: tie === 'oui',
-        cravate_date: tie === 'oui' ? new Date().toISOString().split('T')[0] : '',
+        cravate_date: tie === 'oui' ? date : '',
         updated_at: new Date().toISOString()
     };
     
@@ -2242,6 +2362,7 @@ function editUniform() {
             document.getElementById('uniformPants').value = uniform.pantalon_taille;
             document.getElementById('uniformJacket').value = uniform.jacket_taille || '';
             document.getElementById('uniformTie').value = uniform.cravate_oui ? 'oui' : 'non';
+            document.getElementById('uniformDate').value = uniform.chemise_date;
         }
     }, 100);
 }
@@ -2256,18 +2377,22 @@ function showUniformReport() {
         <div class="info-section">
             <h3>📋 Rapport d'Habillement</h3>
             <table class="classement-table">
-                <thead><tr><th>Agent</th><th>Chemise</th><th>Pantalon</th><th>Veste</th><th>Cravate</th></thead>
+                <thead> <tr><th>Agent</th><th>Chemise</th><th>Pantalon</th><th>Veste</th><th>Cravate</th><th>Date</th> </thead>
                 <tbody>
                     ${uniforms.map(u => {
                         const agent = agents.find(a => a.code === u.agent_code);
-                        return `<tr>
-                            <td>${agent ? agent.nom + ' ' + agent.prenom : u.agent_code}
-                            <td>${u.chemise_taille}</td>
-                            <td>${u.pantalon_taille}</td>
-                            <td>${u.jacket_taille || '-'}</td>
-                            <td>${u.cravate_oui ? 'Oui' : 'Non'}</td>
-                        </tr>
-                    `}).join('')}
+                        return `
+                                   
+                            <tr>
+                                <td>${agent ? agent.nom + ' ' + agent.prenom : u.agent_code}</td>
+                                <td>${u.chemise_taille}</td>
+                                <td>${u.pantalon_taille}</td>
+                                <td>${u.jacket_taille || '-'}</td>
+                                <td>${u.cravate_oui ? 'Oui' : 'Non'}</td>
+                                <td>${u.chemise_date}</td>
+                            </tr>
+                        `;
+                    }).join('')}
                 </tbody>
             </table>
         </div>
@@ -2288,37 +2413,70 @@ function showUniformStats() {
     
     const shirtSizes = {};
     const pantsSizes = {};
+    let totalWithTie = 0;
+    let totalWithJacket = 0;
     
     uniforms.forEach(u => {
         shirtSizes[u.chemise_taille] = (shirtSizes[u.chemise_taille] || 0) + 1;
         pantsSizes[u.pantalon_taille] = (pantsSizes[u.pantalon_taille] || 0) + 1;
+        if (u.cravate_oui) totalWithTie++;
+        if (u.jacket_taille) totalWithJacket++;
     });
     
     let html = `
         <div class="info-section">
             <h3>📊 Statistiques des Tailles</h3>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                <div style="text-align: center; padding: 15px; background: #2c3e50; border-radius: 8px;">
+                    <div style="font-size: 2em; font-weight: bold; color: #3498db;">${uniforms.length}</div>
+                    <div>Agents équipés</div>
+                </div>
+                <div style="text-align: center; padding: 15px; background: #f39c12; border-radius: 8px;">
+                    <div style="font-size: 2em; font-weight: bold;">${totalWithTie}</div>
+                    <div>Avec cravate</div>
+                </div>
+                <div style="text-align: center; padding: 15px; background: #9b59b6; border-radius: 8px;">
+                    <div style="font-size: 2em; font-weight: bold;">${totalWithJacket}</div>
+                    <div>Avec veste</div>
+                </div>
+            </div>
+            
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                 <div>
                     <h4>Chemises</h4>
-                    ${Object.entries(shirtSizes).sort((a,b) => b[1] - a[1]).map(([size, count]) => `
-                        <div style="margin: 5px 0; padding: 8px; background: #34495e; border-radius: 5px;">
-                            <span style="font-weight: bold;">Taille ${size}:</span>
-                            <span style="float: right;">${count}</span>
-                        </div>
-                    `).join('')}
+                    ${Object.entries(shirtSizes).sort((a,b) => b[1] - a[1]).map(([size, count]) => {
+                        const percentage = ((count / uniforms.length) * 100).toFixed(1);
+                        return `
+                            <div style="margin: 8px 0;">
+                                <div style="display: flex; justify-content: space-between;">
+                                    <span>Taille ${size}:</span>
+                                    <span style="font-weight: bold;">${count} (${percentage}%)</span>
+                                </div>
+                                <div style="height: 8px; background: #34495e; border-radius: 4px;">
+                                    <div style="height: 100%; width: ${percentage}%; background: #3498db; border-radius: 4px;"></div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
                 </div>
                 <div>
                     <h4>Pantalons</h4>
-                    ${Object.entries(pantsSizes).sort((a,b) => b[1] - a[1]).map(([size, count]) => `
-                        <div style="margin: 5px 0; padding: 8px; background: #34495e; border-radius: 5px;">
-                            <span style="font-weight: bold;">Taille ${size}:</span>
-                            <span style="float: right;">${count}</span>
-                        </div>
-                    `).join('')}
+                    ${Object.entries(pantsSizes).sort((a,b) => b[1] - a[1]).map(([size, count]) => {
+                        const percentage = ((count / uniforms.length) * 100).toFixed(1);
+                        return `
+                            <div style="margin: 8px 0;">
+                                <div style="display: flex; justify-content: space-between;">
+                                    <span>Taille ${size}:</span>
+                                    <span style="font-weight: bold;">${count} (${percentage}%)</span>
+                                </div>
+                                <div style="height: 8px; background: #34495e; border-radius: 4px;">
+                                    <div style="height: 100%; width: ${percentage}%; background: #9b59b6; border-radius: 4px;"></div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
                 </div>
-            </div>
-            <div style="margin-top: 20px; padding: 15px; background: #2c3e50; border-radius: 5px;">
-                <strong>Total agents équipés:</strong> ${uniforms.length}
             </div>
         </div>
     `;
@@ -2329,7 +2487,87 @@ function showUniformStats() {
 }
 
 function showUniformDeadlines() {
-    showSnackbar("📅 Échéances Habillement - fonctionnalité complète à venir");
+    if (!uniforms || uniforms.length === 0) {
+        showSnackbar("ℹ️ Aucune donnée d'habillement disponible");
+        return;
+    }
+    
+    const today = new Date();
+    const deadlines = [];
+    
+    uniforms.forEach(u => {
+        const shirtDate = new Date(u.chemise_date);
+        const pantsDate = new Date(u.pantalon_date);
+        const shirtRenewal = new Date(shirtDate);
+        const pantsRenewal = new Date(pantsDate);
+        shirtRenewal.setFullYear(shirtRenewal.getFullYear() + 2);
+        pantsRenewal.setFullYear(pantsRenewal.getFullYear() + 2);
+        
+        const shirtDaysLeft = Math.ceil((shirtRenewal - today) / (1000 * 60 * 60 * 24));
+        const pantsDaysLeft = Math.ceil((pantsRenewal - today) / (1000 * 60 * 60 * 24));
+        
+        if (shirtDaysLeft <= 90 || pantsDaysLeft <= 90) {
+            const agent = agents.find(a => a.code === u.agent_code);
+            deadlines.push({
+                agent: agent ? `${agent.nom} ${agent.prenom}` : u.agent_code,
+                code: u.agent_code,
+                shirt: { size: u.chemise_taille, daysLeft: shirtDaysLeft, date: u.chemise_date },
+                pants: { size: u.pantalon_taille, daysLeft: pantsDaysLeft, date: u.pantalon_date }
+            });
+        }
+    });
+    
+    deadlines.sort((a, b) => Math.min(a.shirt.daysLeft, a.pants.daysLeft) - Math.min(b.shirt.daysLeft, b.pants.daysLeft));
+    
+    if (deadlines.length === 0) {
+        showSnackbar("🎉 Aucune échéance dans les 90 prochains jours");
+        return;
+    }
+    
+    let html = `
+        <div class="info-section">
+            <h3>📅 Échéances de Renouvellement</h3>
+            <p style="color: #7f8c8d;">Échéances dans les 90 prochains jours</p>
+            <table class="classement-table">
+                <thead>
+                    <tr><th>Agent</th><th>Équipement</th><th>Taille</th><th>Dernière fourniture</th><th>Jours restants</th></tr>
+                </thead>
+                <tbody>
+                    ${deadlines.flatMap(d => {
+                        const items = [];
+                        if (d.shirt.daysLeft <= 90) {
+                            const statusColor = d.shirt.daysLeft <= 0 ? '#e74c3c' : d.shirt.daysLeft <= 30 ? '#e67e22' : d.shirt.daysLeft <= 60 ? '#f39c12' : '#3498db';
+                            items.push(`
+                                <tr>
+                                    <td rowspan="${(d.shirt.daysLeft <= 90 ? 1 : 0) + (d.pants.daysLeft <= 90 ? 1 : 0)}"><strong>${d.agent}</strong><br><small>${d.code}</small></td>
+                                    <td>Chemise</td>
+                                    <td>${d.shirt.size}</td>
+                                    <td>${d.shirt.date}</td>
+                                    <td><span style="background-color:${statusColor}; color:white; padding:2px 8px; border-radius:12px;">${d.shirt.daysLeft} j</span></td>
+                                </tr>
+                            `);
+                        }
+                        if (d.pants.daysLeft <= 90) {
+                            const statusColor = d.pants.daysLeft <= 0 ? '#e74c3c' : d.pants.daysLeft <= 30 ? '#e67e22' : d.pants.daysLeft <= 60 ? '#f39c12' : '#3498db';
+                            items.push(`
+                                <tr>
+                                    <td>Pantalon</td>
+                                    <td>${d.pants.size}</td>
+                                    <td>${d.pants.date}</td>
+                                    <td><span style="background-color:${statusColor}; color:white; padding:2px 8px; border-radius:12px;">${d.pants.daysLeft} j</span></td>
+                                </tr>
+                            `);
+                        }
+                        return items;
+                    }).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+    
+    openPopup("📅 Échéances Habillement", html, `
+        <button class="popup-button gray" onclick="showUniformReport()">Retour</button>
+    `);
 }
 
 function exportUniformReport() {
@@ -2501,14 +2739,17 @@ function showAgentWarnings() {
         <div class="info-section">
             <h3>⚠️ Avertissements de ${agent.nom} ${agent.prenom}</h3>
             <table class="classement-table">
-                <thead><tr><th>Date</th><th>Type</th><th>Description</th><th>Sanctions</th><th>Statut</th></tr></thead>
+                <thead>
+                    <tr><th>Date</th><th>Type</th><th>Description</th><th>Sanctions</th><th>Statut</th></tr>
+                </thead>
                 <tbody>
                     ${agentWarnings.map(w => {
                         const typeLabel = w.type === 'ORAL' ? 'Oral' : w.type === 'ECRIT' ? 'Écrit' : 'Mise à pied';
+                        const typeColor = w.type === 'ORAL' ? '#f39c12' : w.type === 'ECRIT' ? '#e74c3c' : '#c0392b';
                         return `
                             <tr>
                                 <td>${w.date}</td>
-                                <td>${typeLabel}</td>
+                                <td><span style="background-color:${typeColor}; color:white; padding:2px 8px; border-radius:12px;">${typeLabel}</span></td>
                                 <td>${w.description}</td>
                                 <td>${w.sanctions || '-'}</td>
                                 <td>${w.status === 'active' ? 'Actif' : 'Archivé'}</td>
@@ -2538,8 +2779,14 @@ function showWarningsStats() {
         ecrit: warnings.filter(w => w.type === 'ECRIT').length,
         miseAPied: warnings.filter(w => w.type === 'MISE_A_PIED').length,
         actifs: warnings.filter(w => w.status === 'active').length,
-        archives: warnings.filter(w => w.status === 'archived').length
+        archives: warnings.filter(w => w.status === 'archived').length,
+        byMonth: {}
     };
+    
+    warnings.forEach(w => {
+        const month = w.date.substring(0, 7);
+        stats.byMonth[month] = (stats.byMonth[month] || 0) + 1;
+    });
     
     let html = `
         <div class="info-section">
@@ -2562,7 +2809,7 @@ function showWarningsStats() {
                     <div>Mise à pied</div>
                 </div>
             </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px;">
                 <div style="text-align: center; padding: 10px; background: #27ae60; border-radius: 5px;">
                     <div style="font-size: 1.5em; font-weight: bold;">${stats.actifs}</div>
                     <div>Actifs</div>
@@ -2572,6 +2819,18 @@ function showWarningsStats() {
                     <div>Archivés</div>
                 </div>
             </div>
+            <h4>📅 Évolution mensuelle</h4>
+            ${Object.entries(stats.byMonth).sort().map(([month, count]) => `
+                <div style="margin: 8px 0;">
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>${month}:</span>
+                        <span style="font-weight: bold;">${count}</span>
+                    </div>
+                    <div style="height: 8px; background: #34495e; border-radius: 4px;">
+                        <div style="height: 100%; width: ${(count / stats.total) * 100}%; background: #e74c3c; border-radius: 4px;"></div>
+                    </div>
+                </div>
+            `).join('')}
         </div>
     `;
     
@@ -2711,7 +2970,9 @@ function showHolidaysList() {
         <div class="info-section">
             <h3>📋 Liste des Jours Fériés</h3>
             <table class="classement-table">
-                <thead><tr><th>Date</th><th>Description</th><th>Type</th></tr></thead>
+                <thead>
+                    <tr><th>Date</th><th>Description</th><th>Type</th></tr>
+                </thead>
                 <tbody>
                     ${holidays.map(h => `
                         <tr>
@@ -2794,10 +3055,16 @@ function displayYearHolidays() {
     
     let html = `
         <table class="classement-table">
-            <thead><tr><th>Date</th><th>Description</th><th>Type</th></tr></thead>
+            <thead>
+                <tr><th>Date</th><th>Description</th><th>Type</th></tr>
+            </thead>
             <tbody>
                 ${yearHolidays.map(h => `
-                    <tr><td>${h.date}</td><td>${h.description}</td><td>${h.type}</td></tr>
+                    <tr>
+                        <td>${h.date}</td>
+                        <td>${h.description}</td>
+                        <td>${h.type}</td>
+                    </tr>
                 `).join('')}
             </tbody>
         </table>
@@ -2912,6 +3179,11 @@ function exportFullReportCSV() {
         csvContent += `${a.code};${a.nom};${a.prenom};${a.groupe};${a.statut};${a.poste || ''};${a.tel || ''};${a.matricule || ''};${a.cin || ''};${a.date_entree || ''}\n`;
     });
     
+    csvContent += "\n=== STATISTIQUES ===\n";
+    const activeAgents = agents.filter(a => a.statut === 'actif');
+    csvContent += `Total agents actifs: ${activeAgents.length}\n`;
+    csvContent += `Total agents inactifs: ${agents.filter(a => a.statut === 'inactif').length}\n`;
+    
     downloadCSV(csvContent, `Rapport_Complet_${new Date().toISOString().split('T')[0]}.csv`);
     showSnackbar("✅ Rapport complet exporté");
 }
@@ -2996,8 +3268,8 @@ function showAgentPlanningDetails(agentCode, month, year) {
             <h3>Planning de ${agent.nom} ${agent.prenom}</h3>
             <div style="overflow-x: auto;">
                 <table class="planning-table">
-                                        <thead>
-                        <tr><th>Date</th><th>Jour</th><th>Shift</th><th>Description</th></thead>
+                    <thead>
+                        <tr><th>Date</th><th>Jour</th><th>Shift</th><th>Description</th> </thead>
                     <tbody>
                         ${Array.from({length: daysInMonth}, (_, i) => {
                             const day = i + 1;
@@ -3009,11 +3281,11 @@ function showAgentPlanningDetails(agentCode, month, year) {
                             const color = SHIFT_COLORS[shift] || '#7f8c8d';
                             return `
                                 <tr>
-                                    <td>${dateStr}</td>
-                                    <td>${dayName}</td>
+                                    <td>${dateStr}</td
+                                                                        <td>${dayName}</td>
                                     <td style="background-color:${color}; color:white; text-align:center;">${shift}</td>
                                     <td>${shiftLabel}</td>
-                                </tr>
+                                 </tr>
                             `;
                         }).join('')}
                     </tbody>
@@ -3052,6 +3324,13 @@ function showAgentStats(agentCode) {
                     <div style="font-size: 1.5em; font-weight: bold; color: #e74c3c;">${stats.leaves + stats.sickDays + stats.otherAbsences}</div>
                     <div>Absences</div>
                 </div>
+            </div>
+            <div style="margin-top: 15px;">
+                <div class="info-item"><span class="info-label">Congés:</span><span class="info-value">${stats.leaves}</span></div>
+                <div class="info-item"><span class="info-label">Maladie:</span><span class="info-value">${stats.sickDays}</span></div>
+                <div class="info-item"><span class="info-label">Autres absences:</span><span class="info-value">${stats.otherAbsences}</span></div>
+                <div class="info-item"><span class="info-label">Jours de weekend:</span><span class="info-value">${stats.weekendDays}</span></div>
+                <div class="info-item"><span class="info-label">Jours fériés:</span><span class="info-value">${stats.holidayDays}</span></div>
             </div>
         </div>
     `;
@@ -3257,209 +3536,6 @@ function filterPanicCodes() {
     showSnackbar("🔍 Filtre codes panique - utilisez la recherche dans la liste");
 }
 
-function showAssignRadioForm() {
-    const availableRadios = radios.filter(r => r.statut === 'DISPONIBLE');
-    if (availableRadios.length === 0) {
-        showSnackbar("⚠️ Aucune radio disponible à attribuer");
-        return;
-    }
-    
-    const activeAgents = agents.filter(a => a.statut === 'actif');
-    
-    let html = `
-        <div class="info-section">
-            <h3>📲 Attribuer une Radio</h3>
-            <div class="form-group"><label>Radio:</label>
-                <select id="assignRadioSelect" class="form-input">
-                    ${availableRadios.map(r => `<option value="${r.id}">${r.id} - ${r.modele}</option>`).join('')}
-                </select>
-            </div>
-            <div class="form-group"><label>Agent:</label>
-                <select id="assignAgentSelect" class="form-input">
-                    ${activeAgents.map(a => `<option value="${a.code}">${a.nom} ${a.prenom} (${a.code})</option>`).join('')}
-                </select>
-            </div>
-            <div class="form-group"><label>Motif:</label><input type="text" id="assignMotif" class="form-input" placeholder="Raison de l'attribution"></div>
-        </div>
-    `;
-    
-    openPopup("📲 Attribuer Radio", html, `
-        <button class="popup-button green" onclick="executeAssignRadio()">✅ Attribuer</button>
-        <button class="popup-button gray" onclick="displayRadiosMenu()">Annuler</button>
-    `);
-}
-
-function executeAssignRadio() {
-    if (!checkPassword()) return;
-    
-    const radioId = document.getElementById('assignRadioSelect').value;
-    const agentCode = document.getElementById('assignAgentSelect').value;
-    const motif = document.getElementById('assignMotif').value;
-    
-    const radioIndex = radios.findIndex(r => r.id === radioId);
-    if (radioIndex === -1) {
-        showSnackbar("⚠️ Radio non trouvée");
-        return;
-    }
-    
-    radios[radioIndex].statut = 'ATTRIBUEE';
-    radios[radioIndex].attributed_to = agentCode;
-    radios[radioIndex].attribution_date = new Date().toISOString().split('T')[0];
-    radios[radioIndex].attribution_motif = motif;
-    
-    // Ajouter à l'historique
-    if (!radioHistory) radioHistory = [];
-    radioHistory.push({
-        id: 'H' + Date.now(),
-        radioId: radioId,
-        agentCode: agentCode,
-        action: 'ATTRIBUTION',
-        date: new Date().toISOString().split('T')[0],
-        details: `Attribuée à ${agentCode} - Motif: ${motif}`,
-        createdBy: 'Admin'
-    });
-    
-    saveData();
-    showSnackbar(`✅ Radio ${radioId} attribuée à ${agentCode}`);
-    closePopup();
-    showRadiosList();
-}
-
-function showReturnRadioForm() {
-    const attributedRadios = radios.filter(r => r.statut === 'ATTRIBUEE');
-    if (attributedRadios.length === 0) {
-        showSnackbar("⚠️ Aucune radio attribuée à retourner");
-        return;
-    }
-    
-    let html = `
-        <div class="info-section">
-            <h3>🔄 Retourner une Radio</h3>
-            <div class="form-group"><label>Radio:</label>
-                <select id="returnRadioSelect" class="form-input">
-                    ${attributedRadios.map(r => {
-                        const agent = agents.find(a => a.code === r.attributed_to);
-                        return `<option value="${r.id}">${r.id} - ${r.modele} (${agent ? agent.nom + ' ' + agent.prenom : r.attributed_to})</option>`;
-                    }).join('')}
-                </select>
-            </div>
-            <div class="form-group"><label>État retour:</label>
-                <select id="returnCondition" class="form-input">
-                    <option value="BON">Bon état</option>
-                    <option value="USAGE">Légère usure</option>
-                    <option value="DOMMAGE">Dommage</option>
-                </select>
-            </div>
-            <div class="form-group"><label>Commentaire:</label><textarea id="returnComment" class="form-input" rows="2"></textarea></div>
-        </div>
-    `;
-    
-    openPopup("🔄 Retourner Radio", html, `
-        <button class="popup-button green" onclick="executeReturnRadio()">✅ Retourner</button>
-        <button class="popup-button gray" onclick="displayRadiosMenu()">Annuler</button>
-    `);
-}
-
-function executeReturnRadio() {
-    if (!checkPassword()) return;
-    
-    const radioId = document.getElementById('returnRadioSelect').value;
-    const condition = document.getElementById('returnCondition').value;
-    const comment = document.getElementById('returnComment').value;
-    
-    const radioIndex = radios.findIndex(r => r.id === radioId);
-    if (radioIndex === -1) {
-        showSnackbar("⚠️ Radio non trouvée");
-        return;
-    }
-    
-    const oldAgent = radios[radioIndex].attributed_to;
-    
-    radios[radioIndex].statut = 'DISPONIBLE';
-    radios[radioIndex].return_date = new Date().toISOString().split('T')[0];
-    radios[radioIndex].return_condition = condition;
-    radios[radioIndex].return_comment = comment;
-    radios[radioIndex].attributed_to = null;
-    
-    // Ajouter à l'historique
-    if (!radioHistory) radioHistory = [];
-    radioHistory.push({
-        id: 'H' + Date.now(),
-        radioId: radioId,
-        agentCode: oldAgent,
-        action: 'RETOUR',
-        date: new Date().toISOString().split('T')[0],
-        details: `Retournée par ${oldAgent} - État: ${condition}`,
-        comments: comment,
-        createdBy: 'Admin'
-    });
-    
-    saveData();
-    showSnackbar(`✅ Radio ${radioId} retournée avec succès`);
-    closePopup();
-    showRadiosList();
-}
-
-function showEditRadioForm(radioId) {
-    const radio = radios.find(r => r.id === radioId);
-    if (!radio) {
-        showSnackbar("⚠️ Radio non trouvée");
-        return;
-    }
-    
-    let html = `
-        <div class="info-section">
-            <h3>✏️ Modifier Radio ${radioId}</h3>
-            <div class="form-group"><label>Modèle:</label><input type="text" id="editRadioModel" value="${radio.modele}" class="form-input"></div>
-            <div class="form-group"><label>Numéro de série:</label><input type="text" id="editRadioSerial" value="${radio.serial || ''}" class="form-input"></div>
-            <div class="form-group"><label>Statut:</label>
-                <select id="editRadioStatus" class="form-input">
-                    <option value="DISPONIBLE" ${radio.statut === 'DISPONIBLE' ? 'selected' : ''}>Disponible</option>
-                    <option value="ATTRIBUEE" ${radio.statut === 'ATTRIBUEE' ? 'selected' : ''}>Attribuée</option>
-                    <option value="HS" ${radio.statut === 'HS' ? 'selected' : ''}>Hors Service</option>
-                </select>
-            </div>
-        </div>
-    `;
-    
-    openPopup(`✏️ Modifier Radio ${radioId}`, html, `
-        <button class="popup-button green" onclick="saveEditRadio('${radioId}')">💾 Enregistrer</button>
-        <button class="popup-button gray" onclick="showRadiosList()">Annuler</button>
-    `);
-}
-
-function saveEditRadio(radioId) {
-    if (!checkPassword()) return;
-    
-    const radioIndex = radios.findIndex(r => r.id === radioId);
-    if (radioIndex === -1) {
-        showSnackbar("⚠️ Radio non trouvée");
-        return;
-    }
-    
-    radios[radioIndex].modele = document.getElementById('editRadioModel').value;
-    radios[radioIndex].serial = document.getElementById('editRadioSerial').value;
-    radios[radioIndex].statut = document.getElementById('editRadioStatus').value;
-    radios[radioIndex].updated_at = new Date().toISOString();
-    
-    saveData();
-    showSnackbar(`✅ Radio ${radioId} mise à jour`);
-    closePopup();
-    showRadiosList();
-}
-
-function deleteRadio(radioId) {
-    if (!checkPassword()) return;
-    
-    const index = radios.findIndex(r => r.id === radioId);
-    if (index !== -1) {
-        radios.splice(index, 1);
-        saveData();
-        showSnackbar(`✅ Radio ${radioId} supprimée`);
-        showRadiosList();
-    }
-}
-
 function filterRadios() {
     showSnackbar("🔍 Filtre radios - utilisez la recherche dans la liste");
 }
@@ -3476,14 +3552,6 @@ function initApp() {
     console.log(`📊 ${agents.length} agents chargés`);
 }
 
-// ==================== DÉMARRAGE DE L'APPLICATION ====================
-
-document.addEventListener('DOMContentLoaded', () => {
-    initApp();
-    displayMainMenu();
-    checkExpiredWarnings();
-});
-
 function checkExpiredWarnings() {
     const today = new Date();
     if (warnings) {
@@ -3496,6 +3564,14 @@ function checkExpiredWarnings() {
         saveData();
     }
 }
+
+// ==================== DÉMARRAGE DE L'APPLICATION ====================
+
+document.addEventListener('DOMContentLoaded', () => {
+    initApp();
+    displayMainMenu();
+    checkExpiredWarnings();
+});
 
 // Ajout des animations CSS si non présentes
 if (!document.querySelector('#dynamic-styles')) {
@@ -3527,9 +3603,89 @@ if (!document.querySelector('#dynamic-styles')) {
         .holiday {
             background-color: rgba(231, 76, 60, 0.2);
         }
+        .status-badge.active {
+            background-color: #27ae60;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+        }
+        .status-badge.inactive {
+            background-color: #e74c3c;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+        }
+        .status-badge.warning {
+            background-color: #f39c12;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+        }
+        .action-btn {
+            padding: 5px 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+            margin: 0 2px;
+            transition: background-color 0.2s;
+        }
+        .action-btn.small {
+            padding: 3px 6px;
+            font-size: 0.8em;
+        }
+        .action-btn.blue {
+            background-color: #3498db;
+            color: white;
+        }
+        .action-btn.blue:hover {
+            background-color: #2980b9;
+        }
+        .action-btn.green {
+            background-color: #27ae60;
+            color: white;
+        }
+        .action-btn.green:hover {
+            background-color: #229954;
+        }
+        .action-btn.red {
+            background-color: #e74c3c;
+            color: white;
+        }
+        .action-btn.red:hover {
+            background-color: #c0392b;
+        }
+        .action-btn.orange {
+            background-color: #f39c12;
+            color: white;
+        }
+        .action-btn.orange:hover {
+            background-color: #e67e22;
+        }
+        .rank-1 { color: #f1c40f; font-weight: bold; }
+        .rank-2 { color: #bdc3c7; font-weight: bold; }
+        .rank-3 { color: #d35400; font-weight: bold; }
+        .total-value { color: #2ecc71; font-weight: bold; }
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px dashed rgba(255,255,255,0.05);
+        }
+        .info-label {
+            color: #ecf0f1;
+            font-size: 0.95em;
+        }
+        .info-value {
+            color: white;
+            font-weight: bold;
+            font-size: 0.95em;
+        }
     `;
     document.head.appendChild(style);
 }
 
 console.log("✅ app.js complet chargé avec tous les modules intégrés");
-                    
