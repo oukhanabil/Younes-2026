@@ -1,0 +1,193 @@
+// app.js - Version simplifiée et garantie fonctionnelle
+
+// Variables globales (seront remplies par data.js)
+let agents = [];
+let planningData = {};
+let holidays = [];
+let panicCodes = [];
+let radios = [];
+let uniforms = [];
+let warnings = [];
+let leaves = [];
+let radioHistory = [];
+
+// Constantes
+let JOURS_FRANCAIS = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+let SHIFT_LABELS = { '1': 'Matin', '2': 'Après-midi', '3': 'Nuit', 'R': 'Repos', 'C': 'Congé', 'M': 'Maladie', 'A': 'Autre', '-': 'Non défini' };
+let SHIFT_COLORS = { '1': '#3498db', '2': '#e74c3c', '3': '#9b59b6', 'R': '#2ecc71', 'C': '#f39c12', 'M': '#e67e22', 'A': '#95a5a6', '-': '#7f8c8d' };
+
+// Fonction pour charger les données depuis window (défini dans data.js)
+function loadDataFromWindow() {
+    agents = window.agents || [];
+    planningData = window.planningData || {};
+    holidays = window.holidays || [];
+    panicCodes = window.panicCodes || [];
+    radios = window.radios || [];
+    uniforms = window.uniforms || [];
+    warnings = window.warnings || [];
+    leaves = window.leaves || [];
+    radioHistory = window.radioHistory || [];
+    JOURS_FRANCAIS = window.JOURS_FRANCAIS || JOURS_FRANCAIS;
+    SHIFT_LABELS = window.SHIFT_LABELS || SHIFT_LABELS;
+    SHIFT_COLORS = window.SHIFT_COLORS || SHIFT_COLORS;
+    
+    console.log("📊 Données chargées:", agents.length, "agents");
+}
+
+// Sauvegarde dans localStorage
+function saveData() {
+    localStorage.setItem('sga_agents', JSON.stringify(agents));
+    localStorage.setItem('sga_planning', JSON.stringify(planningData));
+}
+
+// Fonctions utilitaires
+function showSnackbar(msg) {
+    let snackbar = document.getElementById('snackbar');
+    if (!snackbar) {
+        snackbar = document.createElement('div');
+        snackbar.id = 'snackbar';
+        snackbar.style.cssText = 'position:fixed; bottom:30px; left:50%; transform:translateX(-50%); background:#333; color:white; padding:12px 20px; border-radius:8px; z-index:3000;';
+        document.body.appendChild(snackbar);
+    }
+    snackbar.textContent = msg;
+    snackbar.style.display = 'block';
+    setTimeout(() => { snackbar.style.display = 'none'; }, 3000);
+}
+
+function openPopup(title, body, footer) {
+    const overlay = document.getElementById('overlay');
+    const content = document.getElementById('popup-content');
+    content.innerHTML = `
+        <div style="background:#2c3e50; padding:15px; border-radius:10px;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
+                <h2 style="margin:0;">${title}</h2>
+                <button onclick="closePopup()" style="background:none; border:none; color:white; font-size:20px; cursor:pointer;">&times;</button>
+            </div>
+            <div style="max-height:60vh; overflow-y:auto;">${body}</div>
+            <div style="margin-top:15px; display:flex; justify-content:flex-end; gap:10px;">${footer}</div>
+        </div>
+    `;
+    overlay.style.display = 'flex';
+}
+
+function closePopup() {
+    document.getElementById('overlay').style.display = 'none';
+}
+
+// Menu principal
+function displayMainMenu() {
+    const mainContent = document.getElementById('main-content');
+    document.getElementById('sub-title').textContent = "Menu Principal";
+    
+    let html = `
+        <div style="display:flex; flex-direction:column; gap:15px; align-items:center; padding:20px;">
+            <button onclick="displayAgentsList()" style="width:90%; padding:15px; background:#3498db; color:white; border:none; border-radius:8px; font-size:16px; cursor:pointer;">👥 LISTE DES AGENTS</button>
+            <button onclick="showSnackbar('Fonctionnalité à venir')" style="width:90%; padding:15px; background:#2ecc71; color:white; border:none; border-radius:8px; font-size:16px; cursor:pointer;">📅 PLANNING</button>
+            <button onclick="showSnackbar('Fonctionnalité à venir')" style="width:90%; padding:15px; background:#f39c12; color:white; border:none; border-radius:8px; font-size:16px; cursor:pointer;">📊 STATISTIQUES</button>
+            <button onclick="showAddAgentForm()" style="width:90%; padding:15px; background:#27ae60; color:white; border:none; border-radius:8px; font-size:16px; cursor:pointer;">➕ AJOUTER AGENT</button>
+            <button onclick="location.reload()" style="width:90%; padding:15px; background:#e74c3c; color:white; border:none; border-radius:8px; font-size:16px; cursor:pointer;">🔄 RAFRAÎCHIR</button>
+        </div>
+    `;
+    mainContent.innerHTML = html;
+}
+
+// Liste des agents
+function displayAgentsList() {
+    let html = `
+        <div>
+            <h3>Liste des Agents (${agents.length})</h3>
+            <table style="width:100%; border-collapse:collapse;">
+                <thead>
+                    <tr style="background:#34495e;">
+                        <th style="padding:8px; text-align:left;">Code</th>
+                        <th style="padding:8px; text-align:left;">Nom</th>
+                        <th style="padding:8px; text-align:left;">Prénom</th>
+                        <th style="padding:8px; text-align:left;">Groupe</th>
+                        <th style="padding:8px; text-align:left;">Téléphone</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${agents.map(a => `
+                        <tr style="border-bottom:1px solid #444;">
+                            <td style="padding:8px;"><strong>${a.code}</strong></td>
+                            <td style="padding:8px;">${a.nom}</td>
+                            <td style="padding:8px;">${a.prenom}</td>
+                            <td style="padding:8px;">${a.groupe}</td>
+                            <td style="padding:8px;">${a.tel || '-'}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+    
+    openPopup("📋 Liste des Agents", html, `
+        <button onclick="closePopup()" style="padding:8px 15px; background:#7f8c8d; color:white; border:none; border-radius:5px; cursor:pointer;">Fermer</button>
+    `);
+}
+
+// Formulaire ajout agent
+function showAddAgentForm() {
+    let html = `
+        <div>
+            <h3>Ajouter un agent</h3>
+            <div style="margin-bottom:10px;"><input type="text" id="newCode" placeholder="Code" style="width:100%; padding:8px; border-radius:5px; border:none;"></div>
+            <div style="margin-bottom:10px;"><input type="text" id="newNom" placeholder="Nom" style="width:100%; padding:8px; border-radius:5px; border:none;"></div>
+            <div style="margin-bottom:10px;"><input type="text" id="newPrenom" placeholder="Prénom" style="width:100%; padding:8px; border-radius:5px; border:none;"></div>
+            <div style="margin-bottom:10px;">
+                <select id="newGroupe" style="width:100%; padding:8px; border-radius:5px;">
+                    <option value="A">Groupe A</option><option value="B">Groupe B</option>
+                    <option value="C">Groupe C</option><option value="D">Groupe D</option>
+                    <option value="E">Groupe E</option>
+                </select>
+            </div>
+            <div style="margin-bottom:10px;"><input type="text" id="newTel" placeholder="Téléphone" style="width:100%; padding:8px; border-radius:5px; border:none;"></div>
+        </div>
+    `;
+    
+    openPopup("➕ Ajouter Agent", html, `
+        <button onclick="addNewAgent()" style="padding:8px 15px; background:#27ae60; color:white; border:none; border-radius:5px; cursor:pointer;">💾 Enregistrer</button>
+        <button onclick="closePopup()" style="padding:8px 15px; background:#7f8c8d; color:white; border:none; border-radius:5px; cursor:pointer;">Annuler</button>
+    `);
+}
+
+function addNewAgent() {
+    const code = document.getElementById('newCode').value.toUpperCase();
+    const nom = document.getElementById('newNom').value;
+    const prenom = document.getElementById('newPrenom').value;
+    const groupe = document.getElementById('newGroupe').value;
+    const tel = document.getElementById('newTel').value;
+    
+    if (!code || !nom || !prenom) {
+        showSnackbar("⚠️ Code, Nom et Prénom sont obligatoires");
+        return;
+    }
+    
+    if (agents.find(a => a.code === code)) {
+        showSnackbar(`⚠️ Le code ${code} existe déjà`);
+        return;
+    }
+    
+    agents.push({
+        code: code, nom: nom, prenom: prenom, groupe: groupe,
+        tel: tel || '', poste: '', statut: 'actif'
+    });
+    
+    window.agents = agents;
+    saveData();
+    showSnackbar(`✅ Agent ${code} ajouté`);
+    closePopup();
+    displayMainMenu();
+}
+
+// Initialisation
+function initApp() {
+    loadDataFromWindow();
+    console.log("✅ SGA initialisé avec", agents.length, "agents");
+    displayMainMenu();
+}
+
+// Démarrer au chargement
+document.addEventListener('DOMContentLoaded', () => {
+    initApp();
+});
