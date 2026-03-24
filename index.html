@@ -38,28 +38,28 @@
 
     </div>
 
+    <!-- IMPORTANT: data.js DOIT être chargé AVANT app.js -->
     <script src="data.js"></script>
     <script src="app.js"></script>
     <script>
-        // Enregistrer le Service Worker
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('service-worker.js')
-                    .then(registration => {
-                        console.log('ServiceWorker registered: ', registration);
-                    })
-                    .catch(error => {
-                        console.log('ServiceWorker registration failed: ', error);
-                    });
-            });
-        }
-        
         // Vérification que les données sont chargées
-        window.addEventListener('DOMContentLoaded', () => {
+        window.addEventListener('DOMContentLoaded', function() {
             if (typeof agents !== 'undefined') {
                 console.log(`✅ ${agents.length} agents chargés depuis data.js`);
             } else {
                 console.error("❌ data.js n'a pas chargé correctement");
+                // Afficher un message d'erreur à l'utilisateur
+                const mainContent = document.getElementById('main-content');
+                if (mainContent) {
+                    mainContent.innerHTML = `
+                        <div style="text-align: center; padding: 40px; background: #e74c3c; border-radius: 10px; margin: 20px;">
+                            <h3>❌ Erreur de chargement</h3>
+                            <p>Le fichier data.js n'a pas pu être chargé.</p>
+                            <p>Veuillez vérifier que le fichier existe et réessayer.</p>
+                            <button onclick="location.reload()" style="margin-top: 20px; padding: 10px 20px; background: #3498db; color: white; border: none; border-radius: 5px;">Recharger</button>
+                        </div>
+                    `;
+                }
             }
         });
     </script>
