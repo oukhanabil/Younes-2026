@@ -301,3 +301,13 @@ console.log(`🔐 ${panicCodes.length} codes panique initialisés`);
 console.log(`📻 ${radios.length} radios initialisées`);
 console.log(`👔 ${uniforms.length} fiches habillement initialisées`);
 console.log(`⚠️ ${warnings.length} avertissements initialisés`);
+// Exporter les variables globales pour window (nécessaire pour app.js)
+window.agents = agents;
+window.planningData = planningData;
+window.holidays = holidays;
+window.panicCodes = panicCodes;
+window.radios = radios;
+window.uniforms = uniforms;
+window.warnings = warnings;
+window.leaves = leaves;
+window.radioHistory = radioHistory;
