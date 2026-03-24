@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SGA - Système de Gestion des Agents</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1e2a3a;
+            color: #ecf0f1;
+        }
+        
+        #app-container {
+            max-width: 500px;
+            margin: 0 auto;
+            background: #2c3e50;
+            min-height: 100vh;
+        }
+        
+        .app-header {
+            background: #1a2a3a;
+            padding: 20px;
+            text-align: center;
+            border-bottom: 2px solid #3498db;
+        }
+        
+        .app-header h1 {
+            font-size: 1.3em;
+            margin-bottom: 5px;
+        }
+        
+        .app-header p {
+            font-size: 0.9em;
+            color: #95a5a6;
+        }
+        
+        #main-content {
+            padding: 20px;
+        }
+        
+        .menu-button {
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            background: #3498db;
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.2s;
+        }
+        
+        .menu-button:hover {
+            background: #2980b9;
+            transform: scale(1.02);
+        }
+        
+        .menu-button.danger {
+            background: #e74c3c;
+        }
+        
+        .menu-button.danger:hover {
+            background: #c0392b;
+        }
+        
+        .menu-button.success {
+            background: #27ae60;
+        }
+        
+        .menu-button.success:hover {
+            background: #229954;
+        }
+        
+        .popup-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .popup-content {
+            background: #2c3e50;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 450px;
+            max-height: 80vh;
+            overflow-y: auto;
+            padding: 20px;
+        }
+        
+        .popup-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #34495e;
+        }
+        
+        .popup-header h2 {
+            font-size: 1.3em;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+            color: #bdc3c7;
+        }
+        
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border-radius: 6px;
+            border: none;
+            background: #34495e;
+            color: white;
+            font-size: 1em;
+        }
+        
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px #3498db;
+        }
+        
+        .popup-footer {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #34495e;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        .btn-primary {
+            background: #27ae60;
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: #7f8c8d;
+            color: white;
+        }
+        
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #34495e;
+        }
+        
+        th {
+            background: #1a2a3a;
+            font-weight: bold;
+        }
+        
+        .agent-card {
+            background: #34495e;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+        }
+        
+        .agent-card strong {
+            color: #3498db;
+        }
+        
+        .snackbar {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #2c3e50;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            z-index: 2000;
+            display: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+        
+        .status-actif {
+            background: #27ae60;
+        }
+        
+        .status-inactif {
+            background: #7f8c8d;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .action-btn {
+            padding: 5px 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8em;
+        }
+        
+        .action-edit {
+            background: #3498db;
+            color: white;
+        }
+        
+        .action-delete {
+            background: #e74c3c;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div id="app-container">
+        <div class="app-header">
+            <h1>🏢 SYSTÈME DE GESTION DES AGENTS</h1>
+            <p id="sub-title">CleanCo Service</p>
+        </div>
+        <div id="main-content">
+            <div style="text-align: center; padding: 40px;">
+                <div style="margin-bottom: 20px;">⏳ Chargement de l'application...</div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="popupOverlay" class="popup-overlay">
+        <div class="popup-content">
+            <div class="popup-header">
+                <h2 id="popupTitle">Titre</h2>
+                <button class="close-btn" onclick="closePopup()">&times;</button>
+            </div>
+            <div id="popupBody"></div>
+            <div id="popupFooter" class="popup-footer"></div>
+        </div>
+    </div>
+    
+    <div id="snackbar" class="snackbar"></div>
+
+    <script>
+        // ==================== DONNÉES ====================
+        let agents = [
+            { code: 'AG001', nom: 'Dupont', prenom: 'Jean', groupe: 'A', tel: '0612345678', poste: 'Agent de sécurité', statut: 'actif', date_entree: '2024-01-01' },
+            { code: 'AG002', nom: 'Martin', prenom: 'Sophie', groupe: 'B', tel: '0623456789', poste: 'Superviseur', statut: 'actif', date_entree: '2024-01-15' },
+            { code: 'AG003', nom: 'Bernard', prenom: 'Pierre', groupe: 'C', tel: '0634567890', poste: 'Agent', statut: 'actif', date_entree: '2024-02-01' },
+            { code: 'AG004', nom: 'Petit', prenom: 'Marie', groupe: 'D', tel: '0645678901', poste: 'Chef d\'équipe', statut: 'actif', date_entree: '2024-01-10' },
+            { code: 'AG005', nom: 'Robert', prenom: 'Luc', groupe: 'E', tel: '0656789012', poste: 'Agent spécial', statut: 'actif', date_entree: '2024-03-01' }
+        ];
+        
+        let planningData = {};
+        
+        // ==================== FONCTIONS UTILITAIRES ====================
+        function showSnackbar(message, duration = 3000) {
+            const snackbar = document.getElementById('snackbar');
+            snackbar.textContent = message;
+            snackbar.style.display = 'block';
+            setTimeout(() => {
+                snackbar.style.display = 'none';
+            }, duration);
+        }
+        
+        function openPopup(title, body, footerButtons) {
+            document.getElementById('popupTitle').textContent = title;
+            document.getElementById('popupBody').innerHTML = body;
+            document.getElementById('popupFooter').innerHTML = footerButtons;
+            document.getElementById('popupOverlay').style.display = 'flex';
+        }
+        
+        function closePopup() {
+            document.getElementById('popupOverlay').style.display = 'none';
+        }
+        
+        function saveToLocalStorage() {
+            localStorage.setItem('sga_agents', JSON.stringify(agents));
+            localStorage.setItem('sga_planning', JSON.stringify(planningData));
+        }
+        
+        function loadFromLocalStorage() {
+            const savedAgents = localStorage.getItem('sga_agents');
+            if (savedAgents) {
+                agents = JSON.parse(savedAgents);
+            }
+            const savedPlanning = localStorage.getItem('sga_planning');
+            if (savedPlanning) {
+                planningData = JSON.parse(savedPlanning);
+            }
+        }
+        
+        // ==================== AFFICHAGE DES AGENTS ====================
+        function displayAgentsList() {
+            let html = `
+                <div>
+                    <h3 style="margin-bottom: 15px;">📋 Liste des Agents (${agents.length})</h3>
+                    <div style="overflow-x: auto;">
+                        <table>
+                            <thead>
+                                <tr><th>Code</th><th>Nom</th><th>Prénom</th><th>Groupe</th><th>Téléphone</th><th>Statut</th><th>Actions</th></thead>
+                            <tbody>
+                    `;
+            
+            agents.forEach(agent => {
+                html += `
+                    <tr>
+                        <td><strong>${agent.code}</strong></td>
+                        <td>${agent.nom}</td>
+                        <td>${agent.prenom}</td>
+                        <td>${agent.groupe}</td>
+                        <td>${agent.tel || '-'}</td>
+                        <td><span class="status-badge status-${agent.statut}">${agent.statut === 'actif' ? 'Actif' : 'Inactif'}</span></td>
+                        <td class="action-buttons">
+                            <button class="action-btn action-edit" onclick="showEditAgent('${agent.code}')">✏️</button>
+                            <button class="action-btn action-delete" onclick="deleteAgent('${agent.code}')">🗑️</button>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            html += `</tbody></table></div></div>`;
+            
+            openPopup("📋 Liste des Agents", html, `
+                <button class="btn btn-primary" onclick="showAddAgentForm()">➕ Ajouter</button>
+                <button class="btn btn-secondary" onclick="closePopup()">Fermer</button>
+            `);
+        }
+        
+        // ==================== AJOUTER AGENT ====================
+        function showAddAgentForm() {
+            let html = `
+                <form id="addAgentForm" onsubmit="return false;">
+                    <div class="form-group">
+                        <label>Code *</label>
+                        <input type="text" id="code" required placeholder="Ex: AG010">
+                    </div>
+                    <div class="form-group">
+                        <label>Nom *</label>
+                        <input type="text" id="nom" required placeholder="Nom">
+                    </div>
+                    <div class="form-group">
+                        <label>Prénom *</label>
+                        <input type="text" id="prenom" required placeholder="Prénom">
+                    </div>
+                    <div class="form-group">
+                        <label>Groupe *</label>
+                        <select id="groupe">
+                            <option value="A">Groupe A</option>
+                            <option value="B">Groupe B</option>
+                            <option value="C">Groupe C</option>
+                            <option value="D">Groupe D</option>
+                            <option value="E">Groupe E</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Téléphone</label>
+                        <input type="tel" id="tel" placeholder="0612345678">
+                    </div>
+                    <div class="form-group">
+                        <label>Poste</label>
+                        <input type="text" id="poste" placeholder="Poste occupé">
+                    </div>
+                </form>
+            `;
+            
+            openPopup("➕ Ajouter un Agent", html, `
+                <button class="btn btn-primary" onclick="addAgent()">💾 Enregistrer</button>
+                <button class="btn btn-secondary" onclick="closePopup()">Annuler</button>
+            `);
+        }
+        
+        function addAgent() {
+            const code = document.getElementById('code').value.toUpperCase();
+            const nom = document.getElementById('nom').value;
+            const prenom = document.getElementById('prenom').value;
+            const groupe = document.getElementById('groupe').value;
+            const tel = document.getElementById('tel').value;
+            const poste = document.getElementById('poste').value;
+            
+            if (!code || !nom || !prenom) {
+                showSnackbar("⚠️ Code, Nom et Prénom sont obligatoires");
+                return;
+            }
+            
+            if (agents.find(a => a.code === code)) {
+                showSnackbar(`⚠️ Le code ${code} existe déjà`);
+                return;
+            }
+            
+            agents.push({
+                code: code,
+                nom: nom,
+                prenom: prenom,
+                groupe: groupe,
+                tel: tel || '',
+                poste: poste || '',
+                statut: 'actif',
+                date_entree: new Date().toISOString().split('T')[0]
+            });
+            
+            saveToLocalStorage();
+            showSnackbar(`✅ Agent ${code} ajouté avec succès`);
+            closePopup();
+            displayAgentsList();
+        }
+        
+        // ==================== MODIFIER AGENT ====================
+        function showEditAgent(code) {
+            const agent = agents.find(a => a.code === code);
+            if (!agent) return;
+            
+            let html = `
+                <form id="editAgentForm" onsubmit="return false;">
+                    <div class="form-group">
+                        <label>Code</label>
+                        <input type="text" value="${agent.code}" readonly style="background:#1a2a3a;">
+                    </div>
+                    <div class="form-group">
+                        <label>Nom *</label>
+                        <input type="text" id="editNom" value="${agent.nom}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Prénom *</label>
+                        <input type="text" id="editPrenom" value="${agent.prenom}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Groupe *</label>
+                        <select id="editGroupe">
+                            <option value="A" ${agent.groupe === 'A' ? 'selected' : ''}>Groupe A</option>
+                            <option value="B" ${agent.groupe === 'B' ? 'selected' : ''}>Groupe B</option>
+                            <option value="C" ${agent.groupe === 'C' ? 'selected' : ''}>Groupe C</option>
+                            <option value="D" ${agent.groupe === 'D' ? 'selected' : ''}>Groupe D</option>
+                            <option value="E" ${agent.groupe === 'E' ? 'selected' : ''}>Groupe E</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Téléphone</label>
+                        <input type="tel" id="editTel" value="${agent.tel || ''}">
+                    </div>
+                    <div class="form-group">
+                        <label>Poste</label>
+                        <input type="text" id="editPoste" value="${agent.poste || ''}">
+                    </div>
+                    <div class="form-group">
+                        <label>Statut</label>
+                        <select id="editStatut">
+                            <option value="actif" ${agent.statut === 'actif' ? 'selected' : ''}>Actif</option>
+                            <option value="inactif" ${agent.statut === 'inactif' ? 'selected' : ''}>Inactif</option>
+                        </select>
+                    </div>
+                </form>
+            `;
+            
+            openPopup(`✏️ Modifier ${code}`, html, `
+                <button class="btn btn-primary" onclick="updateAgent('${code}')">💾 Enregistrer</button>
+                <button class="btn btn-secondary" onclick="closePopup()">Annuler</button>
+            `);
+        }
+        
+        function updateAgent(code) {
+            const index = agents.findIndex(a => a.code === code);
+            if (index === -1) return;
+            
+            agents[index] = {
+                ...agents[index],
+                nom: document.getElementById('editNom').value,
+                prenom: document.getElementById('editPrenom').value,
+                groupe: document.getElementById('editGroupe').value,
+                tel: document.getElementById('editTel').value,
+                poste: document.getElementById('editPoste').value,
+                statut: document.getElementById('editStatut').value
+            };
+            
+            saveToLocalStorage();
+            showSnackbar(`✅ Agent ${code} modifié avec succès`);
+            closePopup();
+            displayAgentsList();
+        }
+        
+        // ==================== SUPPRIMER AGENT ====================
+        function deleteAgent(code) {
+            if (confirm(`Êtes-vous sûr de vouloir supprimer l'agent ${code} ?`)) {
+                agents = agents.filter(a => a.code !== code);
+                saveToLocalStorage();
+                showSnackbar(`✅ Agent ${code} supprimé`);
+                displayAgentsList();
+            }
+        }
+        
+        // ==================== STATISTIQUES ====================
+        function showStatistics() {
+            const actifs = agents.filter(a => a.statut === 'actif').length;
+            const inactifs = agents.filter(a => a.statut === 'inactif').length;
+            const groupes = {};
+            
+            agents.forEach(a => {
+                groupes[a.groupe] = (groupes[a.groupe] || 0) + 1;
+            });
+            
+            let html = `
+                <div>
+                    <h3>📊 Statistiques Globales</h3>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0;">
+                        <div style="background: #27ae60; padding: 15px; border-radius: 8px; text-align: center;">
+                            <div style="font-size: 2em; font-weight: bold;">${actifs}</div>
+                            <div>Agents Actifs</div>
+                        </div>
+                        <div style="background: #7f8c8d; padding: 15px; border-radius: 8px; text-align: center;">
+                            <div style="font-size: 2em; font-weight: bold;">${inactifs}</div>
+                            <div>Agents Inactifs</div>
+                        </div>
+                    </div>
+                    <h4>👥 Répartition par Groupe</h4>
+            `;
+            
+            for (const [groupe, count] of Object.entries(groupes)) {
+                html += `
+                    <div style="margin: 10px 0;">
+                        <div style="display: flex; justify-content: space-between;">
+                            <span>Groupe ${groupe}:</span>
+                            <span style="font-weight: bold;">${count} agent(s)</span>
+                        </div>
+                        <div style="height: 8px; background: #34495e; border-radius: 4px; margin-top: 5px;">
+                            <div style="height: 100%; width: ${(count / agents.length) * 100}%; background: #3498db; border-radius: 4px;"></div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            html += `</div>`;
+            
+            openPopup("📊 Statistiques", html, `
+                <button class="btn btn-secondary" onclick="closePopup()">Fermer</button>
+            `);
+        }
+        
+        // ==================== AFFICHER DÉTAILS AGENT ====================
+        function showAgentDetails(code) {
+            const agent = agents.find(a => a.code === code);
+            if (!agent) return;
+            
+            let html = `
+                <div>
+                    <div class="agent-card">
+                        <strong>Code:</strong> ${agent.code}<br>
+                        <strong>Nom:</strong> ${agent.nom} ${agent.prenom}<br>
+                        <strong>Groupe:</strong> ${agent.groupe}<br>
+                        <strong>Poste:</strong> ${agent.poste || 'Non spécifié'}<br>
+                        <strong>Téléphone:</strong> ${agent.tel || 'Non spécifié'}<br>
+                        <strong>Date d'entrée:</strong> ${agent.date_entree || 'Non spécifié'}<br>
+                        <strong>Statut:</strong> <span class="status-badge status-${agent.statut}">${agent.statut === 'actif' ? 'Actif' : 'Inactif'}</span>
+                    </div>
+                </div>
+            `;
+            
+            openPopup(`👤 Détails - ${agent.nom} ${agent.prenom}`, html, `
+                <button class="btn btn-primary" onclick="showEditAgent('${agent.code}')">✏️ Modifier</button>
+                <button class="btn btn-secondary" onclick="closePopup()">Fermer</button>
+            `);
+        }
+        
+        // ==================== MENU PRINCIPAL ====================
+        function showMainMenu() {
+            const mainContent = document.getElementById('main-content');
+            document.getElementById('sub-title').textContent = "Menu Principal";
+            
+            mainContent.innerHTML = `
+                <button class="menu-button" onclick="displayAgentsList()">👥 Liste des Agents</button>
+                <button class="menu-button success" onclick="showAddAgentForm()">➕ Ajouter un Agent</button>
+                <button class="menu-button" onclick="showStatistics()">📊 Statistiques</button>
+                <button class="menu-button" onclick="showSnackbar('Fonctionnalité à venir')">📅 Planning</button>
+                <button class="menu-button" onclick="showSnackbar('Fonctionnalité à venir')">🏖️ Congés</button>
+                <button class="menu-button" onclick="showSnackbar('Fonctionnalité à venir')">📻 Radios</button>
+                <button class="menu-button" onclick="showSnackbar('Fonctionnalité à venir')">👔 Habillement</button>
+                <button class="menu-button danger" onclick="if(confirm('Effacer toutes les données ?')) { localStorage.clear(); location.reload(); }">🗑️ Effacer Données</button>
+            `;
+        }
+        
+        // ==================== INITIALISATION ====================
+        function init() {
+            loadFromLocalStorage();
+            console.log(`✅ ${agents.length} agents chargés`);
+            showMainMenu();
+        }
+        
+        // Démarrer l'application
+        init();
+    </script>
+</body>
+</html>
